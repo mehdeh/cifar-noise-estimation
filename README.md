@@ -35,8 +35,9 @@ This is a fundamental task in image denoising and is related to diffusion models
 - **Comprehensive Logging**: Detailed logging of training progress and metrics
 - **Rich Visualizations**: Loss curves, prediction scatter plots, noise distributions
 - **Checkpoint Management**: Automatic saving of best models and resumable training
-- **CLI Interface**: User-friendly command-line interface using Click
+- **Unified CLI Interface**: Single main script with train/test subcommands using Click
 - **Reproducibility**: Seed control for reproducible experiments
+- **Persian/Farsi Support**: Documentation and CLI help in Persian language
 
 ## 📁 Project Structure
 
@@ -66,8 +67,7 @@ cifar-noise-estimation/
 │       ├── checkpoints/      # Model checkpoints
 │       ├── logs/             # Training logs
 │       └── plots/            # Visualization plots
-├── train.py                  # Training script
-├── test.py                   # Evaluation script
+├── main.py                   # Main CLI script (train & test)
 ├── requirements.txt          # Python dependencies
 └── README.md                 # This file
 ```
@@ -100,23 +100,67 @@ pip install -r requirements.txt
 
 The CIFAR-10 dataset will be automatically downloaded on first run.
 
+## 🔧 New Unified CLI Interface
+
+Starting from this version, the project uses a single `main.py` script with subcommands instead of separate `train.py` and `test.py` files. This provides:
+
+- **Cleaner interface**: Single entry point for all operations
+- **Shared functionality**: Common code is reused between train and test
+- **Better organization**: Related commands grouped together
+- **Multilingual support**: Help text available in Persian/Farsi
+
+### CLI Structure
+
+```
+main.py
+├── train    # Training subcommand
+└── test     # Testing subcommand
+```
+
+### Migration from Previous Version
+
+If you were using the old interface:
+
+```bash
+# Old way
+python train.py --epochs 100
+python test.py --checkpoint model.pth
+
+# New way
+python main.py train --epochs 100
+python main.py test --checkpoint model.pth
+```
+
 ## 🎬 Quick Start
+
+### Show Available Commands
+
+```bash
+# Show main help
+python main.py --help
+
+# Show training options
+python main.py train --help
+
+# Show testing options  
+python main.py test --help
+```
 
 ### Train a Model
 
 ```bash
 # Train with default configuration
-python train.py
+python main.py train
 
 # Train with custom parameters
-python train.py --epochs 200 --lr 0.001 --batch-size 128
+python main.py train --epochs 200 --lr 0.001 --batch-size 128
 ```
 
 ### Evaluate a Model
 
 ```bash
 # Evaluate the best model from training
-python test.py --checkpoint runs/exp_YYYYMMDD_HHMMSS/checkpoints/best_model.pth
+python main.py test --checkpoint runs/exp_YYYYMMDD_HHMMSS/checkpoints/best_model.pth
 ```
 
 ## 📖 Usage
@@ -126,13 +170,13 @@ python test.py --checkpoint runs/exp_YYYYMMDD_HHMMSS/checkpoints/best_model.pth
 #### Basic Training
 
 ```bash
-python train.py --config config/default.yaml
+python main.py train --config config/default.yaml
 ```
 
 #### Training with Custom Parameters
 
 ```bash
-python train.py \
+python main.py train \
     --config config/default.yaml \
     --exp-name my_experiment \
     --epochs 200 \
@@ -146,7 +190,7 @@ python train.py \
 #### Resume Training
 
 ```bash
-python train.py \
+python main.py train \
     --resume \
     --resume-path runs/exp_YYYYMMDD_HHMMSS/checkpoints/latest.pth
 ```
@@ -173,13 +217,13 @@ python train.py \
 #### Basic Evaluation
 
 ```bash
-python test.py --checkpoint path/to/checkpoint.pth
+python main.py test --checkpoint path/to/checkpoint.pth
 ```
 
 #### Evaluation with Options
 
 ```bash
-python test.py \
+python main.py test \
     --checkpoint runs/exp_YYYYMMDD_HHMMSS/checkpoints/best_model.pth \
     --config config/default.yaml \
     --exp-name test_experiment \
@@ -235,7 +279,7 @@ CLI arguments take precedence over config file values:
 
 ```bash
 # Config file has lr=0.001, but CLI overrides it to 0.0005
-python train.py --config config/default.yaml --lr 0.0005
+python main.py train --config config/default.yaml --lr 0.0005
 ```
 
 The final configuration (after CLI override) is saved in the experiment directory.
@@ -334,7 +378,7 @@ The model `f_θ` learns to predict `σ`:
 
 ```bash
 # 1. Train a model
-python train.py \
+python main.py train \
     --exp-name noise_estimation_v1 \
     --epochs 100 \
     --lr 0.001 \
@@ -342,7 +386,7 @@ python train.py \
     --sigma-max 1.0
 
 # 2. Evaluate the trained model
-python test.py \
+python main.py test \
     --checkpoint runs/noise_estimation_v1_20241026_143022/checkpoints/best_model.pth \
     --exp-name evaluation_v1 \
     --evaluate-by-noise-level
@@ -355,25 +399,25 @@ ls runs/evaluation_v1_*/plots/
 
 ```bash
 # Train on low noise
-python train.py --exp-name low_noise --sigma-min 0.0 --sigma-max 0.5
+python main.py train --exp-name low_noise --sigma-min 0.0 --sigma-max 0.5
 
 # Train on high noise
-python train.py --exp-name high_noise --sigma-min 0.5 --sigma-max 2.0
+python main.py train --exp-name high_noise --sigma-min 0.5 --sigma-max 2.0
 
 # Train on full range
-python train.py --exp-name full_range --sigma-min 0.0 --sigma-max 2.0
+python main.py train --exp-name full_range --sigma-min 0.0 --sigma-max 2.0
 ```
 
 ## 🛠️ Tips and Best Practices
 
 1. **GPU Memory**: If you encounter OOM errors, reduce batch size:
    ```bash
-   python train.py --batch-size 64
+   python main.py train --batch-size 64
    ```
 
 2. **Reproducibility**: Always set the same seed for reproducible results:
    ```bash
-   python train.py --seed 42
+   python main.py train --seed 42
    ```
 
 3. **Hyperparameter Tuning**: Modify config file for extensive experiments:
