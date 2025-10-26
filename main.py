@@ -1,11 +1,11 @@
 """
-اسکریپت اصلی برای آموزش و ارزیابی مدل تخمین نویز CIFAR-10.
+Main script for training and evaluating CIFAR-10 noise estimation model.
 
-این اسکریپت شامل دو حالت اصلی است:
-- train: آموزش مدل ResNet برای تخمین سطح نویز
-- test: ارزیابی مدل آموزش‌دیده روی مجموعه آزمون
+This script includes two main modes:
+- train: Train ResNet model for noise level estimation
+- test: Evaluate trained model on test set
 
-استفاده:
+Usage:
     python main.py train --config config/default.yaml
     python main.py train --config config/default.yaml --epochs 200 --lr 0.001
     python main.py test --checkpoint runs/exp_20240101_120000/checkpoints/best_model.pth
@@ -19,7 +19,7 @@ import torch
 import random
 import numpy as np
 
-# مسیر src را به path اضافه کن
+# Add src path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 from src.models.resnet import ResNet18
@@ -37,10 +37,10 @@ from src.utils.logger import Logger
 
 def set_seed(seed):
     """
-    تنظیم seed تصادفی برای قابلیت تکرار نتایج.
+    Set random seed for reproducibility.
     
     Args:
-        seed (int): مقدار seed تصادفی
+        seed (int): Random seed value
     """
     random.seed(seed)
     np.random.seed(seed)
@@ -54,72 +54,72 @@ def set_seed(seed):
 
 def setup_experiment(config_path, exp_name, cli_args, mode='train'):
     """
-    راه‌اندازی آزمایش شامل بارگیری کانفیگ، ایجاد دایرکتوری و logger.
+    Setup experiment including loading config, creating directory and logger.
     
     Args:
-        config_path (str): مسیر فایل کانفیگ
-        exp_name (str): نام آزمایش
-        cli_args (dict): آرگومان‌های خط فرمان
-        mode (str): حالت اجرا ('train' یا 'test')
+        config_path (str): Path to config file
+        exp_name (str): Experiment name
+        cli_args (dict): Command line arguments
+        mode (str): Execution mode ('train' or 'test')
     
     Returns:
         tuple: (config, exp_dir, logger)
     """
-    # بارگیری کانفیگ پایه
-    print(f"بارگیری کانفیگ از: {config_path}")
+    # Load base config
+    print(f"Loading config from: {config_path}")
     base_config = load_config(config_path)
     
-    # به‌روزرسانی کانفیگ با آرگومان‌های CLI
+    # Update config with CLI arguments
     config = update_config_with_cli(base_config, cli_args)
     
-    # تنظیم seed تصادفی
+    # Set random seed
     set_seed(config['seed'])
-    print(f"Seed تصادفی تنظیم شد: {config['seed']}")
+    print(f"Random seed set: {config['seed']}")
     
-    # ایجاد دایرکتوری آزمایش
+    # Create experiment directory
     exp_dir = create_exp_dir('runs', exp_name)
-    print(f"دایرکتوری آزمایش: {exp_dir}")
+    print(f"Experiment directory: {exp_dir}")
     
-    # ذخیره کانفیگ
+    # Save config
     config_save_path = os.path.join(exp_dir, 'config.yaml')
     save_config(config, config_save_path)
-    print(f"کانفیگ ذخیره شد در: {config_save_path}")
+    print(f"Config saved to: {config_save_path}")
     
-    # راه‌اندازی logger
+    # Setup logger
     log_dir = os.path.join(exp_dir, 'logs')
     logger = Logger(log_dir, name=mode)
     
-    # لاگ عنوان
-    title = "آموزش مدل تخمین نویز CIFAR-10" if mode == 'train' else "ارزیابی مدل تخمین نویز CIFAR-10"
+    # Log title
+    title = "Training CIFAR-10 Noise Estimation Model" if mode == 'train' else "Evaluating CIFAR-10 Noise Estimation Model"
     logger.info("=" * 60)
     logger.info(title)
     logger.info("=" * 60)
-    logger.info(f"دایرکتوری آزمایش: {exp_dir}")
-    logger.info(f"فایل کانفیگ: {config_path}")
+    logger.info(f"Experiment directory: {exp_dir}")
+    logger.info(f"Config file: {config_path}")
     
     return config, exp_dir, logger
 
 
 def create_model_and_log_info(config, logger):
     """
-    ایجاد مدل و لاگ اطلاعات آن.
+    Create model and log its information.
     
     Args:
-        config (dict): کانفیگ آزمایش
-        logger (Logger): لاگر
+        config (dict): Experiment config
+        logger (Logger): Logger
     
     Returns:
-        torch.nn.Module: مدل ایجاد شده
+        torch.nn.Module: Created model
     """
-    logger.info("\nایجاد مدل...")
+    logger.info("\nCreating model...")
     model = ResNet18(num_classes=config['model']['num_classes'])
     
-    # شمارش پارامترها
+    # Count parameters
     total_params = sum(p.numel() for p in model.parameters())
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    logger.info(f"مدل: {config['model']['name']}")
-    logger.info(f"کل پارامترها: {total_params:,}")
-    logger.info(f"پارامترهای قابل آموزش: {trainable_params:,}")
+    logger.info(f"Model: {config['model']['name']}")
+    logger.info(f"Total parameters: {total_params:,}")
+    logger.info(f"Trainable parameters: {trainable_params:,}")
     
     return model
 
@@ -128,11 +128,11 @@ def create_model_and_log_info(config, logger):
 @click.version_option(version='1.0.0')
 def main():
     """
-    ابزار جامع برای آموزش و ارزیابی مدل تخمین نویز CIFAR-10.
+    Comprehensive tool for training and evaluating CIFAR-10 noise estimation model.
     
-    این ابزار شامل دو حالت اصلی است:
-    - train: آموزش مدل جدید
-    - test: ارزیابی مدل آموزش‌دیده
+    This tool includes two main modes:
+    - train: Train new model
+    - test: Evaluate trained model
     """
     pass
 
@@ -142,84 +142,84 @@ def main():
     '--config',
     type=click.Path(exists=True),
     default='config/default.yaml',
-    help='مسیر فایل کانفیگ YAML'
+    help='Path to YAML config file'
 )
 @click.option(
     '--exp-name',
     type=str,
     default=None,
-    help='نام آزمایش (به timestamp اضافه می‌شود)'
+    help='Experiment name (timestamp will be added)'
 )
 @click.option(
     '--epochs',
     type=int,
     default=None,
-    help='تعداد epoch های آموزش'
+    help='Number of training epochs'
 )
 @click.option(
     '--batch-size',
     type=int,
     default=None,
-    help='اندازه batch آموزش'
+    help='Training batch size'
 )
 @click.option(
     '--batch-size-test',
     type=int,
     default=None,
-    help='اندازه batch آزمون'
+    help='Test batch size'
 )
 @click.option(
     '--lr',
     type=float,
     default=None,
-    help='نرخ یادگیری'
+    help='Learning rate'
 )
 @click.option(
     '--device',
     type=str,
     default=None,
-    help='دستگاه مورد استفاده (cuda یا cpu)'
+    help='Device to use (cuda or cpu)'
 )
 @click.option(
     '--seed',
     type=int,
     default=None,
-    help='Seed تصادفی برای تکرارپذیری'
+    help='Random seed for reproducibility'
 )
 @click.option(
     '--sigma-min',
     type=float,
     default=None,
-    help='حداقل انحراف معیار نویز'
+    help='Minimum noise standard deviation'
 )
 @click.option(
     '--sigma-max',
     type=float,
     default=None,
-    help='حداکثر انحراف معیار نویز'
+    help='Maximum noise standard deviation'
 )
 @click.option(
     '--resume',
     is_flag=True,
     default=False,
-    help='ادامه آموزش از checkpoint'
+    help='Resume training from checkpoint'
 )
 @click.option(
     '--resume-path',
     type=click.Path(exists=True),
     default=None,
-    help='مسیر checkpoint برای ادامه آموزش'
+    help='Path to checkpoint for resuming training'
 )
 def train(config, exp_name, epochs, batch_size, batch_size_test, lr, device,
           seed, sigma_min, sigma_max, resume, resume_path):
     """
-    آموزش مدل تخمین نویز CIFAR-10.
+    Train CIFAR-10 noise estimation model.
     
-    این دستور یک مدل ResNet را برای پیش‌بینی سطح نویز (sigma) اضافه شده
-    به تصاویر CIFAR-10 با استفاده از فرمول x_noise = x + eps * sigma آموزش می‌دهد
-    که در آن eps ~ N(0, I).
+    This command trains a ResNet model to predict the noise level (sigma) added
+    to CIFAR-10 images using the formula x_noise = x + eps * sigma
+    where eps ~ N(0, I).
     """
-    # آماده‌سازی آرگومان‌های CLI
+    # Prepare CLI arguments
     cli_args = {
         'epochs': epochs,
         'batch_size': batch_size,
@@ -233,33 +233,33 @@ def train(config, exp_name, epochs, batch_size, batch_size_test, lr, device,
         'resume_path': resume_path
     }
     
-    # راه‌اندازی آزمایش
+    # Setup experiment
     config, exp_dir, logger = setup_experiment(config, exp_name, cli_args, 'train')
     
-    # لاگ کانفیگ
-    logger.info("\nکانفیگ:")
+    # Log config
+    logger.info("\nConfig:")
     logger.info(f"  Epochs: {config['training']['epochs']}")
-    logger.info(f"  اندازه batch (آموزش): {config['data']['batch_size_train']}")
-    logger.info(f"  اندازه batch (آزمون): {config['data']['batch_size_test']}")
-    logger.info(f"  نرخ یادگیری: {config['training']['learning_rate']}")
-    logger.info(f"  بهینه‌ساز: {config['training']['optimizer']}")
-    logger.info(f"  زمان‌بند: {config['training']['scheduler']}")
-    logger.info(f"  محدوده نویز: [{config['noise']['sigma_min']}, {config['noise']['sigma_max']}]")
-    logger.info(f"  دستگاه: {config['device']}")
+    logger.info(f"  Batch size (train): {config['data']['batch_size_train']}")
+    logger.info(f"  Batch size (test): {config['data']['batch_size_test']}")
+    logger.info(f"  Learning rate: {config['training']['learning_rate']}")
+    logger.info(f"  Optimizer: {config['training']['optimizer']}")
+    logger.info(f"  Scheduler: {config['training']['scheduler']}")
+    logger.info(f"  Noise range: [{config['noise']['sigma_min']}, {config['noise']['sigma_max']}]")
+    logger.info(f"  Device: {config['device']}")
     logger.info(f"  Seed: {config['seed']}")
     
-    # بارگیری داده‌ها
-    logger.info("\nبارگیری مجموعه داده CIFAR-10...")
+    # Load data
+    logger.info("\nLoading CIFAR-10 dataset...")
     train_loader, val_loader, _, _ = get_dataloaders(config)
-    logger.info(f"نمونه‌های آموزش: {len(train_loader.dataset)}")
-    logger.info(f"نمونه‌های اعتبارسنجی: {len(val_loader.dataset)}")
-    logger.info(f"batch های آموزش: {len(train_loader)}")
-    logger.info(f"batch های اعتبارسنجی: {len(val_loader)}")
+    logger.info(f"Training samples: {len(train_loader.dataset)}")
+    logger.info(f"Validation samples: {len(val_loader.dataset)}")
+    logger.info(f"Training batches: {len(train_loader)}")
+    logger.info(f"Validation batches: {len(val_loader)}")
     
-    # ایجاد مدل
+    # Create model
     model = create_model_and_log_info(config, logger)
     
-    # ایجاد trainer
+    # Create trainer
     trainer = Trainer(
         model=model,
         train_loader=train_loader,
@@ -269,22 +269,22 @@ def train(config, exp_name, epochs, batch_size, batch_size_test, lr, device,
         exp_dir=exp_dir
     )
     
-    # آموزش
+    # Train
     try:
         trainer.train()
     except KeyboardInterrupt:
-        logger.warning("\nآموزش توسط کاربر متوقف شد!")
-        logger.info("ذخیره checkpoint...")
+        logger.warning("\nTraining interrupted by user!")
+        logger.info("Saving checkpoint...")
         trainer.save_checkpoint(trainer.start_epoch + len(trainer.train_losses) - 1)
-        logger.info("Checkpoint ذخیره شد. خروج...")
+        logger.info("Checkpoint saved. Exiting...")
         sys.exit(0)
     
     logger.info("\n" + "=" * 60)
-    logger.info("آموزش با موفقیت تکمیل شد!")
+    logger.info("Training completed successfully!")
     logger.info("=" * 60)
-    logger.info(f"نتایج ذخیره شده در: {exp_dir}")
-    logger.info(f"بهترین مدل: {os.path.join(exp_dir, 'checkpoints', 'best_model.pth')}")
-    logger.info(f"نمودار loss: {os.path.join(exp_dir, 'plots', 'loss_curve.png')}")
+    logger.info(f"Results saved to: {exp_dir}")
+    logger.info(f"Best model: {os.path.join(exp_dir, 'checkpoints', 'best_model.pth')}")
+    logger.info(f"Loss curve: {os.path.join(exp_dir, 'plots', 'loss_curve.png')}")
 
 
 @main.command()
@@ -292,70 +292,70 @@ def train(config, exp_name, epochs, batch_size, batch_size_test, lr, device,
     '--checkpoint',
     type=click.Path(exists=True),
     required=True,
-    help='مسیر فایل checkpoint مدل'
+    help='Path to model checkpoint file'
 )
 @click.option(
     '--config',
     type=click.Path(exists=True),
     default='config/default.yaml',
-    help='مسیر فایل کانفیگ YAML'
+    help='Path to YAML config file'
 )
 @click.option(
     '--exp-name',
     type=str,
     default='test',
-    help='نام آزمایش برای ذخیره نتایج'
+    help='Experiment name for saving results'
 )
 @click.option(
     '--batch-size',
     type=int,
     default=None,
-    help='اندازه batch آزمون'
+    help='Test batch size'
 )
 @click.option(
     '--device',
     type=str,
     default=None,
-    help='دستگاه مورد استفاده (cuda یا cpu)'
+    help='Device to use (cuda or cpu)'
 )
 @click.option(
     '--seed',
     type=int,
     default=None,
-    help='Seed تصادفی برای تکرارپذیری'
+    help='Random seed for reproducibility'
 )
 @click.option(
     '--sigma-min',
     type=float,
     default=None,
-    help='حداقل انحراف معیار نویز برای آزمون'
+    help='Minimum noise standard deviation for testing'
 )
 @click.option(
     '--sigma-max',
     type=float,
     default=None,
-    help='حداکثر انحراف معیار نویز برای آزمون'
+    help='Maximum noise standard deviation for testing'
 )
 @click.option(
     '--save-visualizations/--no-visualizations',
     default=True,
-    help='آیا نمودارهای تجسم ذخیره شوند'
+    help='Whether to save visualization plots'
 )
 @click.option(
     '--evaluate-by-noise-level',
     is_flag=True,
     default=False,
-    help='ارزیابی عملکرد در سطوح مختلف نویز'
+    help='Evaluate performance at different noise levels'
 )
 def test(checkpoint, config, exp_name, batch_size, device, seed,
          sigma_min, sigma_max, save_visualizations, evaluate_by_noise_level):
     """
-    ارزیابی مدل تخمین نویز CIFAR-10.
+    Evaluate CIFAR-10 noise estimation model.
     
-    این دستور یک مدل آموزش‌دیده را بارگیری کرده و عملکرد آن را روی
-    مجموعه آزمون ارزیابی می‌کند. همچنین معیارهای دقیق و نمودارهای تجسم تولید می‌کند.
+    This command loads a trained model and evaluates its performance on the
+    test set. It also produces accuracy metrics and visualization plots.
     """
-    # آماده‌سازی آرگومان‌های CLI
+    # Prepare CLI arguments
     cli_args = {
         'batch_size_test': batch_size,
         'device': device,
@@ -365,30 +365,30 @@ def test(checkpoint, config, exp_name, batch_size, device, seed,
         'checkpoint_path': checkpoint
     }
     
-    # راه‌اندازی آزمایش
+    # Setup experiment
     config, exp_dir, logger = setup_experiment(config, exp_name, cli_args, 'test')
     config['testing']['checkpoint_path'] = checkpoint
     
-    # لاگ اطلاعات
+    # Log information
     logger.info(f"Checkpoint: {checkpoint}")
     
-    # لاگ کانفیگ
-    logger.info("\nکانفیگ:")
-    logger.info(f"  اندازه batch: {config['data']['batch_size_test']}")
-    logger.info(f"  محدوده نویز: [{config['noise']['sigma_min']}, {config['noise']['sigma_max']}]")
-    logger.info(f"  دستگاه: {config['device']}")
+    # Log config
+    logger.info("\nConfig:")
+    logger.info(f"  Batch size: {config['data']['batch_size_test']}")
+    logger.info(f"  Noise range: [{config['noise']['sigma_min']}, {config['noise']['sigma_max']}]")
+    logger.info(f"  Device: {config['device']}")
     logger.info(f"  Seed: {config['seed']}")
     
-    # بارگیری داده‌ها
-    logger.info("\nبارگیری مجموعه آزمون CIFAR-10...")
+    # Load data
+    logger.info("\nLoading CIFAR-10 test set...")
     _, test_loader, _, _ = get_dataloaders(config)
-    logger.info(f"نمونه‌های آزمون: {len(test_loader.dataset)}")
-    logger.info(f"batch های آزمون: {len(test_loader)}")
+    logger.info(f"Test samples: {len(test_loader.dataset)}")
+    logger.info(f"Test batches: {len(test_loader)}")
     
-    # ایجاد مدل
+    # Create model
     model = create_model_and_log_info(config, logger)
     
-    # ایجاد evaluator
+    # Create evaluator
     evaluator = Evaluator(
         model=model,
         test_loader=test_loader,
@@ -397,32 +397,32 @@ def test(checkpoint, config, exp_name, batch_size, device, seed,
         exp_dir=exp_dir
     )
     
-    # بارگیری checkpoint
+    # Load checkpoint
     evaluator.load_checkpoint(checkpoint)
     
-    # ارزیابی
+    # Evaluate
     logger.info("\n" + "=" * 60)
     metrics = evaluator.evaluate(save_visualizations=save_visualizations)
     logger.info("=" * 60)
     
-    # ارزیابی بر اساس سطح نویز در صورت درخواست
+    # Evaluate by noise level if requested
     if evaluate_by_noise_level:
         logger.info("\n" + "=" * 60)
         evaluator.evaluate_by_noise_level(num_bins=10)
         logger.info("=" * 60)
     
-    # خلاصه
+    # Summary
     logger.info("\n" + "=" * 60)
-    logger.info("ارزیابی با موفقیت تکمیل شد!")
+    logger.info("Evaluation completed successfully!")
     logger.info("=" * 60)
-    logger.info(f"نتایج ذخیره شده در: {exp_dir}")
-    logger.info(f"معیارها: {os.path.join(exp_dir, 'logs', 'test_metrics.json')}")
+    logger.info(f"Results saved to: {exp_dir}")
+    logger.info(f"Metrics: {os.path.join(exp_dir, 'logs', 'test_metrics.json')}")
     if save_visualizations:
-        logger.info(f"نمودارها: {os.path.join(exp_dir, 'plots')}")
+        logger.info(f"Plots: {os.path.join(exp_dir, 'plots')}")
     
-    # چاپ معیارهای کلیدی
+    # Print key metrics
     print("\n" + "=" * 60)
-    print("معیارهای کلیدی:")
+    print("Key Metrics:")
     print("=" * 60)
     print(f"MSE:  {metrics['mse']:.6f}")
     print(f"RMSE: {metrics['rmse']:.6f}")
