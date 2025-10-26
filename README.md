@@ -444,7 +444,7 @@ python main.py train --exp-name full_range --sigma-min 0.0 --sigma-max 2.0
 
 2. **Dataset download fails**
    - Check internet connection
-   - Manually download CIFAR-10 and place in `./data/`
+   - Manually download CIFAR-10 and place in `./datasets/`
 
 3. **Import errors**
    - Ensure you're in the project root directory

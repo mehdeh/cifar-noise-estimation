@@ -277,7 +277,7 @@ python train.py --batch-size 64  # یا کمتر
 ### خطا: Dataset download fails
 
 ```bash
-# دانلود دستی CIFAR-10 و قرار دادن در ./data/
+# دانلود دستی CIFAR-10 و قرار دادن در ./datasets/
 ```
 
 ---
@@ -298,6 +298,6 @@ find . -name "*.py" | grep -v __pycache__
 rm -rf runs/*
 
 # پاک کردن داده‌های دانلود شده
-rm -rf data/
+rm -rf datasets/
 ```
 

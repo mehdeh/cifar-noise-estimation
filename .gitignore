@@ -40,7 +40,7 @@ ENV/
 
 # Project specific
 runs/
-data/
+datasets/
 *.pth
 *.pt
 checkpoints/

@@ -8,7 +8,7 @@ model:
 # Data configuration
 data:
   dataset: "CIFAR10"
-  data_dir: "./data"
+  data_dir: "./datasets"
   batch_size_train: 128
   batch_size_test: 100
   num_workers: 2
