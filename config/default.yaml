@@ -1,0 +1,67 @@
+# Default configuration for CIFAR-10 Noise Estimation
+
+# Model configuration
+model:
+  name: "ResNet18"
+  num_classes: 1  # Regression task for noise level prediction
+
+# Data configuration
+data:
+  dataset: "CIFAR10"
+  data_dir: "./data"
+  batch_size_train: 128
+  batch_size_test: 100
+  num_workers: 2
+  normalize: true
+  # CIFAR-10 normalization statistics
+  mean: [0.4914, 0.4822, 0.4465]
+  std: [0.2023, 0.1994, 0.2010]
+  # Data augmentation for training
+  augmentation:
+    random_horizontal_flip: true
+    random_crop: false
+    crop_size: 32
+    padding: 4
+
+# Noise configuration
+noise:
+  sigma_min: 0.0
+  sigma_max: 1.0
+  distribution: "normal"  # Gaussian noise N(0, I)
+
+# Training configuration
+training:
+  epochs: 100
+  learning_rate: 0.001
+  momentum: 0.9
+  weight_decay: 0.0005
+  optimizer: "SGD"
+  scheduler: "CosineAnnealingLR"
+  scheduler_params:
+    T_max: 200
+  
+  # Loss configuration
+  loss: "MSELoss"
+  
+  # Checkpoint configuration
+  save_freq: 5  # Save checkpoint every N epochs
+  resume: false
+  resume_path: null
+
+# Testing/Evaluation configuration
+testing:
+  checkpoint_path: null
+  batch_size: 100
+
+# Logging configuration
+logging:
+  log_freq: 10  # Log every N batches
+  save_plots: true
+  plot_freq: 1  # Save plots every N epochs
+
+# Device configuration
+device: "cuda"  # 'cuda' or 'cpu'
+
+# Random seed for reproducibility
+seed: 42
+
