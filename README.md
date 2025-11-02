@@ -117,20 +117,6 @@ main.py
 └── test     # Testing subcommand
 ```
 
-### Migration from Previous Version
-
-If you were using the old interface:
-
-```bash
-# Old way
-python train.py --epochs 100
-python test.py --checkpoint model.pth
-
-# New way
-python main.py train --epochs 100
-python main.py test --checkpoint model.pth
-```
-
 ## 🎬 Quick Start
 
 ### Show Available Commands
