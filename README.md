@@ -8,6 +8,7 @@ A deep learning project for estimating noise levels in CIFAR-10 images using Res
 - [Features](#features)
 - [Project Structure](#project-structure)
 - [Installation](#installation)
+- [New Unified CLI Interface](#new-unified-cli-interface)
 - [Quick Start](#quick-start)
 - [Usage](#usage)
   - [Training](#training)
@@ -15,7 +16,13 @@ A deep learning project for estimating noise levels in CIFAR-10 images using Res
   - [Configuration](#configuration)
 - [Results](#results)
 - [Methodology](#methodology)
-- [Citation](#citation)
+- [Example Workflow](#example-workflow)
+- [Experimental Scenarios](#experimental-scenarios)
+- [Monitoring Training](#monitoring-training)
+- [Tips and Best Practices](#tips-and-best-practices)
+- [Troubleshooting](#troubleshooting)
+- [Useful Commands](#useful-commands)
+- [References](#references)
 
 ## 🎯 Overview
 
@@ -385,13 +392,105 @@ ls runs/evaluation_v1_*/plots/
 
 ```bash
 # Train on low noise
-python main.py train --exp-name low_noise --sigma-min 0.0 --sigma-max 0.5
+python main.py train --exp-name low_noise --sigma-min 0.0 --sigma-max 0.5 --epochs 100
 
 # Train on high noise
-python main.py train --exp-name high_noise --sigma-min 0.5 --sigma-max 2.0
+python main.py train --exp-name high_noise --sigma-min 0.5 --sigma-max 2.0 --epochs 100
 
 # Train on full range
-python main.py train --exp-name full_range --sigma-min 0.0 --sigma-max 2.0
+python main.py train --exp-name full_range --sigma-min 0.0 --sigma-max 2.0 --epochs 150
+
+# Evaluate all three models
+python main.py test --checkpoint runs/low_noise_*/checkpoints/best_model.pth --exp-name eval_low
+python main.py test --checkpoint runs/high_noise_*/checkpoints/best_model.pth --exp-name eval_high
+python main.py test --checkpoint runs/full_range_*/checkpoints/best_model.pth --exp-name eval_full
+```
+
+## 🧪 Experimental Scenarios
+
+### Experiment 1: Hyperparameter Tuning - Learning Rate
+
+```bash
+# Test different learning rates
+python main.py train --exp-name lr_0001 --lr 0.001 --epochs 50
+python main.py train --exp-name lr_0005 --lr 0.005 --epochs 50
+python main.py train --exp-name lr_00001 --lr 0.0001 --epochs 50
+```
+
+### Experiment 2: Batch Size Comparison
+
+```bash
+# Test different batch sizes
+python main.py train --exp-name bs_64 --batch-size 64 --epochs 50
+python main.py train --exp-name bs_128 --batch-size 128 --epochs 50
+python main.py train --exp-name bs_256 --batch-size 256 --epochs 50
+```
+
+### Experiment 3: Noise Range Comparison
+
+```bash
+# Small range
+python main.py train --exp-name sigma_0_05 --sigma-min 0.0 --sigma-max 0.5 --epochs 100
+
+# Medium range
+python main.py train --exp-name sigma_0_10 --sigma-min 0.0 --sigma-max 1.0 --epochs 100
+
+# Large range
+python main.py train --exp-name sigma_0_20 --sigma-min 0.0 --sigma-max 2.0 --epochs 100
+
+# Evaluate all three models with detailed analysis
+python main.py test --checkpoint runs/sigma_0_05_*/checkpoints/best_model.pth --exp-name eval_0_05 --evaluate-by-noise-level
+python main.py test --checkpoint runs/sigma_0_10_*/checkpoints/best_model.pth --exp-name eval_0_10 --evaluate-by-noise-level
+python main.py test --checkpoint runs/sigma_0_20_*/checkpoints/best_model.pth --exp-name eval_0_20 --evaluate-by-noise-level
+```
+
+## 📈 Monitoring Training
+
+### Using tmux for Background Training
+
+For long training sessions, use tmux to keep training running in the background:
+
+```bash
+# Start a new tmux session
+tmux new -s training
+
+# Run your training
+python main.py train --epochs 200 --exp-name long_training
+
+# Detach from session: Press Ctrl+B, then D
+
+# Reattach to session later
+tmux attach -t training
+
+# List all sessions
+tmux ls
+
+# Kill a session
+tmux kill-session -t training
+```
+
+### Save Training Output to File
+
+```bash
+# Save both stdout and stderr to a log file
+python main.py train --epochs 100 2>&1 | tee training_output.log
+
+# This allows you to:
+# - See output in real-time
+# - Have a complete log file saved
+```
+
+### Monitor Training Progress
+
+```bash
+# Watch training log in real-time
+tail -f runs/exp_*/logs/train.log
+
+# View latest metrics
+cat runs/exp_*/logs/metrics.json
+
+# Check GPU usage
+watch -n 1 nvidia-smi
 ```
 
 ## 🛠️ Tips and Best Practices
@@ -422,19 +521,189 @@ python main.py train --exp-name full_range --sigma-min 0.0 --sigma-max 2.0
 
 ## 🔧 Troubleshooting
 
-### Common Issues
+### Common Issues and Solutions
 
-1. **CUDA out of memory**
-   - Reduce batch size: `--batch-size 64`
-   - Use CPU: `--device cpu`
+#### 1. CUDA out of memory
 
-2. **Dataset download fails**
-   - Check internet connection
-   - Manually download CIFAR-10 and place in `./datasets/`
+**Error**: `RuntimeError: CUDA out of memory`
 
-3. **Import errors**
-   - Ensure you're in the project root directory
-   - Reinstall dependencies: `pip install -r requirements.txt`
+**Solutions**:
+```bash
+# Option 1: Reduce batch size
+python main.py train --batch-size 64  # or even smaller: 32
+
+# Option 2: Use CPU instead
+python main.py train --device cpu --batch-size 32
+
+# Option 3: Reduce test batch size as well
+python main.py train --batch-size 64 --batch-size-test 50
+```
+
+#### 2. ModuleNotFoundError
+
+**Error**: `ModuleNotFoundError: No module named 'torch'` (or other dependencies)
+
+**Solution**:
+```bash
+# Reinstall all dependencies
+pip install -r requirements.txt
+
+# Or install specific missing package
+pip install torch torchvision
+```
+
+#### 3. Dataset download fails
+
+**Error**: Dataset download timeout or connection issues
+
+**Solutions**:
+```bash
+# Check internet connection first
+ping www.cs.toronto.edu
+
+# Manually download CIFAR-10
+# Download from: https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz
+# Extract to: ./datasets/cifar-10-batches-py/
+
+# Or retry with better connection
+python main.py train
+```
+
+#### 4. Import errors / Module not found
+
+**Error**: `ImportError: attempted relative import with no known parent package`
+
+**Solution**:
+```bash
+# Make sure you're in the project root directory
+cd /home/ubuntu/cifar-noise-estimation
+
+# Verify structure
+ls -la  # Should see main.py, src/, config/, etc.
+
+# Run from project root
+python main.py train
+```
+
+#### 5. Permission denied errors
+
+**Error**: `PermissionError: [Errno 13] Permission denied`
+
+**Solution**:
+```bash
+# Check and fix directory permissions
+chmod -R u+w runs/
+chmod -R u+w datasets/
+
+# Or run with appropriate permissions
+sudo python main.py train  # Not recommended, fix permissions instead
+```
+
+#### 6. Checkpoint not found
+
+**Error**: `FileNotFoundError: checkpoint not found`
+
+**Solution**:
+```bash
+# List available checkpoints
+find runs/ -name "*.pth"
+
+# Use the full path to existing checkpoint
+python main.py test --checkpoint runs/exp_20241026_143022/checkpoints/best_model.pth
+
+# Check if checkpoint file exists
+ls -lh runs/*/checkpoints/
+```
+
+## 🔍 Useful Commands
+
+### Get Help
+
+```bash
+# Show main help
+python main.py --help
+
+# Show training options
+python main.py train --help
+
+# Show testing options
+python main.py test --help
+```
+
+### Project Navigation
+
+```bash
+# Find all Python files (excluding cache)
+find . -name "*.py" | grep -v __pycache__
+
+# Show project structure
+tree -I '__pycache__|*.pyc|*.pth'
+
+# Count lines of code
+find . -name "*.py" -not -path "*/__pycache__/*" | xargs wc -l
+```
+
+### Results Management
+
+```bash
+# List all experiments
+ls -lh runs/
+
+# Find the latest experiment
+ls -lt runs/ | head -n 5
+
+# Check experiment size
+du -sh runs/*
+
+# View specific experiment results
+cat runs/exp_*/logs/metrics.json | jq '.'
+
+# Find best models
+find runs/ -name "best_model.pth"
+```
+
+### Cleanup
+
+```bash
+# Remove all experiment results (be careful!)
+rm -rf runs/*
+
+# Remove downloaded datasets
+rm -rf datasets/
+
+# Remove specific experiment
+rm -rf runs/exp_20241026_143022/
+
+# Remove all checkpoints except best models
+find runs/ -name "checkpoint_epoch_*.pth" -delete
+find runs/ -name "latest.pth" -delete
+
+# Clean Python cache
+find . -type d -name __pycache__ -exec rm -rf {} +
+find . -name "*.pyc" -delete
+```
+
+### System Information
+
+```bash
+# Check CUDA availability
+python -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}')"
+
+# Check PyTorch version
+python -c "import torch; print(f'PyTorch version: {torch.__version__}')"
+
+# Check GPU information
+nvidia-smi
+
+# Monitor GPU in real-time
+watch -n 1 nvidia-smi
+
+# Check disk space
+df -h
+
+# Check memory usage
+free -h
+```
 
 ## 📚 References
 
