@@ -712,19 +712,35 @@ free -h
 
 ## 📄 License
 
-This project is provided as-is for research and educational purposes.
+This project is free and open source, available for anyone to use, modify, and distribute. It is provided as-is for research, educational, and commercial purposes without any restrictions.
+
+**MIT License** - Feel free to use this code in your own projects!
 
 ## 👤 Author
 
-Developed as a research project for noise estimation in images.
+**Mehdi Dehghani**
+- GitHub: [@mehdeh](https://github.com/mehdeh)
+- Project Link: [cifar-noise-estimation](https://github.com/mehdeh/cifar-noise-estimation)
+
+This project was developed as part of research in noise estimation for images, with the assistance of AI-powered development tools (Cursor AI).
 
 ## 🙏 Acknowledgments
 
 - CIFAR-10 dataset by Alex Krizhevsky
 - ResNet architecture by Kaiming He et al.
 - PyTorch team for the deep learning framework
+- Cursor AI for development assistance and code optimization
+- The open-source community for inspiration and best practices
+
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/mehdeh/cifar-noise-estimation/issues) or submit a pull request.
+
+## ⭐ Support
+
+If you find this project helpful for your research or work, please consider giving it a star on GitHub!
 
 ---
 
-**Note**: This is a research-oriented project. For production use, additional optimization and validation may be required.
+**Note**: This is a research-oriented project developed for educational and research purposes. For production use, additional optimization and validation may be required.
 
