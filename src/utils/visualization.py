@@ -298,7 +298,7 @@ def create_noise_estimation_table(model, test_loader, config, save_path, num_sam
                     padded_batch = batch.value
                 
                 matbatch = padded_batch.reshape([nrow, ncol])
-                im = ax.matshow(matbatch.detach().numpy(), cmap=plt.cm.Blues, aspect=0.99)
+                im = ax.matshow(matbatch.detach().numpy(), cmap=plt.cm.Blues, aspect=1.1)
                 
                 # Add colorbar for table visualization
                 plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
@@ -312,9 +312,7 @@ def create_noise_estimation_table(model, test_loader, config, save_path, num_sam
             ax.axis('off')
         
         # Reduce whitespace and improve layout - similar to original notebook
-        plt.suptitle('Noise Estimation Visualization', fontsize=16, fontweight='bold', y=0.95)
         plt.tight_layout()
-        plt.subplots_adjust(top=0.90)
         
         if save_path:
             plt.savefig(save_path, dpi=300, bbox_inches='tight', pad_inches=0.1)
