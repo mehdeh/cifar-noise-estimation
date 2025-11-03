@@ -306,7 +306,7 @@ def train(config, exp_name, epochs, batch_size, batch_size_test, lr, device,
             test_loader=test_loader,
             config=config,
             save_path=viz_path,
-            num_samples=16,
+            num_samples=32,
             device=device
         )
         
@@ -465,7 +465,7 @@ def test(checkpoint, config, exp_name, batch_size, device, seed,
             test_loader=test_loader,
             config=config,
             save_path=viz_path,
-            num_samples=16,
+            num_samples=32,
             device=device
         )
         

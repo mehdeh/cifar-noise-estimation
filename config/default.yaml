@@ -26,7 +26,7 @@ data:
 # Noise configuration
 noise:
   sigma_min: 0.0
-  sigma_max: 1.0
+  sigma_max: 4.0
   distribution: "normal"  # Gaussian noise N(0, I)
 
 # Training configuration

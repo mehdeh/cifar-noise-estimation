@@ -197,13 +197,14 @@ def denormalize_batch(imgs, mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 
     return imgs * std + mean
 
 
-def create_noise_estimation_table(model, test_loader, config, save_path, num_samples=16, device='cuda'):
+def create_noise_estimation_table(model, test_loader, config, save_path, num_samples=32, device='cuda'):
     """
     Create a comprehensive visualization table showing:
     1. Original random images
     2. Sigma values (noise levels)
     3. Noisy images (original + noise)
     4. Estimated sigma from trained model
+    5. Estimation error (absolute difference)
     
     Args:
         model (torch.nn.Module): Trained noise estimation model
@@ -246,6 +247,9 @@ def create_noise_estimation_table(model, test_loader, config, save_path, num_sam
     with torch.no_grad():
         sigma_estimated = model(noisy_images).squeeze()
     
+    # Calculate estimation error (absolute difference)
+    estimation_error = torch.abs(sigma_estimated - sigma_values)
+    
     # Create the visualization using improved version of user's function
     def min_max_norm_batch_0_1(x):
         """Min-max normalization for each image in batch."""
@@ -264,7 +268,7 @@ def create_noise_estimation_table(model, test_loader, config, save_path, num_sam
         fig.dpi = 300
         
         for ax, batch in zip(axes, batchlist):
-            ax.set_title(batch.name, fontsize=14, fontweight='bold')
+            ax.set_title(batch.name, fontsize=12, fontweight='bold', pad=5)
             
             if batch.showtype == 'grid':
                 # Denormalize images for proper display
@@ -276,13 +280,14 @@ def create_noise_estimation_table(model, test_loader, config, save_path, num_sam
                     display_images = min_max_norm_batch_0_1(batch.value)
                 
                 # Create grid for visualization (tensors already on CPU)
+                # For 32 samples in 4 columns × 8 rows layout
                 grid_img_batch = make_grid(display_images, nrow=ncol, padding=2)
                 ax.imshow(grid_img_batch.permute(1, 2, 0).detach().numpy())
                 
             elif batch.showtype == 'table':
                 # Calculate nrow based on the current batch size and ncol
                 batch_size = len(batch.value)
-                nrow = (batch_size + ncol - 1) // ncol  # Ceiling division
+                nrow = (batch_size + ncol - 1) // ncol  # Ceiling division (8 rows for 32 samples with 4 cols)
                 
                 # Pad the batch if necessary to fill the grid
                 padded_size = nrow * ncol
@@ -306,11 +311,13 @@ def create_noise_estimation_table(model, test_loader, config, save_path, num_sam
             
             ax.axis('off')
         
-        plt.suptitle('Noise Estimation Visualization', fontsize=18, fontweight='bold', y=0.95)
+        # Reduce whitespace and improve layout - similar to original notebook
+        plt.suptitle('Noise Estimation Visualization', fontsize=16, fontweight='bold', y=0.95)
         plt.tight_layout()
+        plt.subplots_adjust(top=0.90)
         
         if save_path:
-            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            plt.savefig(save_path, dpi=300, bbox_inches='tight', pad_inches=0.1)
             plt.close()
         else:
             plt.show()
@@ -320,7 +327,8 @@ def create_noise_estimation_table(model, test_loader, config, save_path, num_sam
         Namespace(name='Original Images', value=images, showtype='grid'),
         Namespace(name='True Sigma (σ)', value=sigma_values, showtype='table'),
         Namespace(name='Noisy Images', value=noisy_images, showtype='grid'),
-        Namespace(name='Estimated Sigma (σ)', value=sigma_estimated, showtype='table')
+        Namespace(name='Estimated Sigma (σ)', value=sigma_estimated, showtype='table'),
+        Namespace(name='Estimation Error |σ_true - σ_est|', value=estimation_error, showtype='table')
     ]
     
     # Create and save visualization
@@ -330,7 +338,8 @@ def create_noise_estimation_table(model, test_loader, config, save_path, num_sam
         'original_images': images,
         'sigma_true': sigma_values,
         'noisy_images': noisy_images,
-        'sigma_estimated': sigma_estimated
+        'sigma_estimated': sigma_estimated,
+        'estimation_error': estimation_error
     }
 
 
