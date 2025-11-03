@@ -88,51 +88,45 @@ def create_exp_dir(base_dir='runs', exp_name=None):
     return exp_dir
 
 
-def update_config_with_cli(config, cli_args):
+def validate_config(config):
     """
-    Update config dictionary with CLI arguments.
-    Handles nested dictionary updates for specific parameters.
+    Validate configuration dictionary for required fields and sensible values.
     
     Args:
-        config (dict): Base configuration
-        cli_args (dict): CLI arguments
+        config (dict): Configuration dictionary
         
     Returns:
-        dict: Updated configuration
+        dict: Validated configuration
+        
+    Raises:
+        ValueError: If configuration is invalid
     """
-    # Map CLI arguments to config keys
-    if cli_args.get('batch_size') is not None:
-        config['data']['batch_size_train'] = cli_args['batch_size']
+    required_sections = ['model', 'data', 'noise', 'training', 'testing']
     
-    if cli_args.get('batch_size_test') is not None:
-        config['data']['batch_size_test'] = cli_args['batch_size_test']
+    for section in required_sections:
+        if section not in config:
+            raise ValueError(f"Missing required config section: {section}")
     
-    if cli_args.get('epochs') is not None:
-        config['training']['epochs'] = cli_args['epochs']
+    # Validate noise configuration
+    if config['noise']['sigma_min'] < 0:
+        raise ValueError("sigma_min must be non-negative")
     
-    if cli_args.get('lr') is not None:
-        config['training']['learning_rate'] = cli_args['lr']
+    if config['noise']['sigma_max'] <= config['noise']['sigma_min']:
+        raise ValueError("sigma_max must be greater than sigma_min")
     
-    if cli_args.get('device') is not None:
-        config['device'] = cli_args['device']
+    # Validate training configuration
+    if config['training']['epochs'] <= 0:
+        raise ValueError("epochs must be positive")
     
-    if cli_args.get('seed') is not None:
-        config['seed'] = cli_args['seed']
+    if config['training']['learning_rate'] <= 0:
+        raise ValueError("learning_rate must be positive")
     
-    if cli_args.get('sigma_min') is not None:
-        config['noise']['sigma_min'] = cli_args['sigma_min']
+    # Validate data configuration
+    if config['data']['batch_size_train'] <= 0:
+        raise ValueError("batch_size_train must be positive")
     
-    if cli_args.get('sigma_max') is not None:
-        config['noise']['sigma_max'] = cli_args['sigma_max']
-    
-    if cli_args.get('resume') is not None:
-        config['training']['resume'] = cli_args['resume']
-    
-    if cli_args.get('resume_path') is not None:
-        config['training']['resume_path'] = cli_args['resume_path']
-    
-    if cli_args.get('checkpoint_path') is not None:
-        config['testing']['checkpoint_path'] = cli_args['checkpoint_path']
+    if config['data']['batch_size_test'] <= 0:
+        raise ValueError("batch_size_test must be positive")
     
     return config
 
