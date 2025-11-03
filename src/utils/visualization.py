@@ -171,8 +171,10 @@ def denormalize_image(img, mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0
     Returns:
         torch.Tensor: Denormalized image
     """
-    mean = torch.tensor(mean).view(3, 1, 1)
-    std = torch.tensor(std).view(3, 1, 1)
+    # Ensure tensors are on the same device as input image
+    device = img.device
+    mean = torch.tensor(mean, device=device, dtype=img.dtype).view(3, 1, 1)
+    std = torch.tensor(std, device=device, dtype=img.dtype).view(3, 1, 1)
     return img * std + mean
 
 
@@ -188,8 +190,10 @@ def denormalize_batch(imgs, mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 
     Returns:
         torch.Tensor: Denormalized images
     """
-    mean = torch.tensor(mean, device=imgs.device).view(1, 3, 1, 1)
-    std = torch.tensor(std, device=imgs.device).view(1, 3, 1, 1)
+    # Ensure tensors are on the same device as input images
+    device = imgs.device
+    mean = torch.tensor(mean, device=device, dtype=imgs.dtype).view(1, 3, 1, 1)
+    std = torch.tensor(std, device=device, dtype=imgs.dtype).view(1, 3, 1, 1)
     return imgs * std + mean
 
 
@@ -212,7 +216,12 @@ def create_noise_estimation_table(model, test_loader, config, save_path, num_sam
     from ..data.dataset import add_noise
     from argparse import Namespace
     
+    # Force CPU computation to avoid device mismatch issues
+    device = 'cpu'
+    
     model.eval()
+    
+    # Ensure model is on the correct device and in eval mode
     model = model.to(device)
     
     # Get random batch from test loader
@@ -240,6 +249,8 @@ def create_noise_estimation_table(model, test_loader, config, save_path, num_sam
     # Create the visualization using improved version of user's function
     def min_max_norm_batch_0_1(x):
         """Min-max normalization for each image in batch."""
+        # Ensure tensor is on CPU for visualization
+        x = x.detach().cpu()
         batch_size = x.shape[0]
         x_reshaped = x.view(batch_size, -1)
         min_vals = x_reshaped.min(dim=1, keepdim=True)[0].view(batch_size, 1, 1, 1)
@@ -252,33 +263,46 @@ def create_noise_estimation_table(model, test_loader, config, save_path, num_sam
         fig, axes = plt.subplots(1, count, figsize=(20, 25))
         fig.dpi = 300
         
-        nrow = (len(batchlist[0].value)) // ncol
-        
         for ax, batch in zip(axes, batchlist):
             ax.set_title(batch.name, fontsize=14, fontweight='bold')
             
             if batch.showtype == 'grid':
                 # Denormalize images for proper display
                 if batch.name in ['Original Images', 'Noisy Images']:
+                    # Denormalize images for proper display
                     display_images = denormalize_batch(batch.value)
                     display_images = torch.clamp(display_images, 0, 1)
                 else:
                     display_images = min_max_norm_batch_0_1(batch.value)
                 
+                # Create grid for visualization (tensors already on CPU)
                 grid_img_batch = make_grid(display_images, nrow=ncol, padding=2)
-                ax.imshow(grid_img_batch.permute(1, 2, 0).cpu().detach().numpy())
+                ax.imshow(grid_img_batch.permute(1, 2, 0).detach().numpy())
                 
             elif batch.showtype == 'table':
-                matbatch = batch.value.reshape([nrow, ncol])
-                im = ax.matshow(matbatch.cpu().detach().numpy(), cmap=plt.cm.Blues, aspect=0.99)
+                # Calculate nrow based on the current batch size and ncol
+                batch_size = len(batch.value)
+                nrow = (batch_size + ncol - 1) // ncol  # Ceiling division
+                
+                # Pad the batch if necessary to fill the grid
+                padded_size = nrow * ncol
+                if batch_size < padded_size:
+                    padding = torch.zeros(padded_size - batch_size, dtype=batch.value.dtype, device=batch.value.device)
+                    padded_batch = torch.cat([batch.value, padding])
+                else:
+                    padded_batch = batch.value
+                
+                matbatch = padded_batch.reshape([nrow, ncol])
+                im = ax.matshow(matbatch.detach().numpy(), cmap=plt.cm.Blues, aspect=0.99)
                 
                 # Add colorbar for table visualization
                 plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
                 
                 for i in range(nrow):
                     for j in range(ncol):
-                        ax.text(j, i, "{:.3f}".format(matbatch[i, j].item()), 
-                               va='center', ha='center', fontsize=8, fontweight='bold')
+                        if i * ncol + j < batch_size:  # Only show values for actual data
+                            ax.text(j, i, "{:.3f}".format(matbatch[i, j].item()), 
+                                   va='center', ha='center', fontsize=8, fontweight='bold')
             
             ax.axis('off')
         

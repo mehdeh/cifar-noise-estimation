@@ -221,9 +221,19 @@ class Evaluator:
         """
         import json
         
+        # Convert numpy types to native Python types for JSON serialization
+        serializable_metrics = {}
+        for key, value in metrics.items():
+            if hasattr(value, 'item'):  # numpy scalar
+                serializable_metrics[key] = value.item()
+            elif hasattr(value, 'tolist'):  # numpy array
+                serializable_metrics[key] = value.tolist()
+            else:
+                serializable_metrics[key] = value
+        
         metrics_file = os.path.join(self.exp_dir, 'logs', 'test_metrics.json')
         with open(metrics_file, 'w') as f:
-            json.dump(metrics, f, indent=4)
+            json.dump(serializable_metrics, f, indent=4)
         
         self.logger.info(f"Saved metrics to: {metrics_file}")
     
