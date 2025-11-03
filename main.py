@@ -33,6 +33,7 @@ from src.utils.config import (
     update_config_with_cli
 )
 from src.utils.logger import Logger
+from src.utils.visualization import create_noise_estimation_table
 
 
 def set_seed(seed):
@@ -285,6 +286,34 @@ def train(config, exp_name, epochs, batch_size, batch_size_test, lr, device,
     logger.info(f"Results saved to: {exp_dir}")
     logger.info(f"Best model: {os.path.join(exp_dir, 'checkpoints', 'best_model.pth')}")
     logger.info(f"Loss curve: {os.path.join(exp_dir, 'plots', 'loss_curve.png')}")
+    
+    # Generate noise estimation visualization table
+    logger.info("\nGenerating noise estimation visualization...")
+    try:
+        # Load test data for visualization
+        _, _, _, test_loader = get_dataloaders(config)
+        
+        # Create plots directory if it doesn't exist
+        plots_dir = os.path.join(exp_dir, 'plots')
+        os.makedirs(plots_dir, exist_ok=True)
+        
+        # Generate visualization
+        viz_path = os.path.join(plots_dir, 'noise_estimation_table.png')
+        device = config['device'] if torch.cuda.is_available() else 'cpu'
+        
+        visualization_results = create_noise_estimation_table(
+            model=trainer.model,
+            test_loader=test_loader,
+            config=config,
+            save_path=viz_path,
+            num_samples=16,
+            device=device
+        )
+        
+        logger.info(f"Noise estimation table saved: {viz_path}")
+        
+    except Exception as e:
+        logger.warning(f"Failed to generate noise estimation visualization: {str(e)}")
 
 
 @main.command()
@@ -419,6 +448,31 @@ def test(checkpoint, config, exp_name, batch_size, device, seed,
     logger.info(f"Metrics: {os.path.join(exp_dir, 'logs', 'test_metrics.json')}")
     if save_visualizations:
         logger.info(f"Plots: {os.path.join(exp_dir, 'plots')}")
+    
+    # Generate noise estimation visualization table
+    logger.info("\nGenerating noise estimation visualization...")
+    try:
+        # Create plots directory if it doesn't exist
+        plots_dir = os.path.join(exp_dir, 'plots')
+        os.makedirs(plots_dir, exist_ok=True)
+        
+        # Generate visualization
+        viz_path = os.path.join(plots_dir, 'noise_estimation_table.png')
+        device = config['device'] if torch.cuda.is_available() else 'cpu'
+        
+        visualization_results = create_noise_estimation_table(
+            model=evaluator.model,
+            test_loader=test_loader,
+            config=config,
+            save_path=viz_path,
+            num_samples=16,
+            device=device
+        )
+        
+        logger.info(f"Noise estimation table saved: {viz_path}")
+        
+    except Exception as e:
+        logger.warning(f"Failed to generate noise estimation visualization: {str(e)}")
     
     # Print key metrics
     print("\n" + "=" * 60)

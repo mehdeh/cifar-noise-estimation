@@ -193,6 +193,123 @@ def denormalize_batch(imgs, mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 
     return imgs * std + mean
 
 
+def create_noise_estimation_table(model, test_loader, config, save_path, num_samples=16, device='cuda'):
+    """
+    Create a comprehensive visualization table showing:
+    1. Original random images
+    2. Sigma values (noise levels)
+    3. Noisy images (original + noise)
+    4. Estimated sigma from trained model
+    
+    Args:
+        model (torch.nn.Module): Trained noise estimation model
+        test_loader (DataLoader): Test data loader
+        config (dict): Configuration dictionary
+        save_path (str): Path to save the visualization
+        num_samples (int): Number of samples to display
+        device (str): Device to run inference on
+    """
+    from ..data.dataset import add_noise
+    from argparse import Namespace
+    
+    model.eval()
+    model = model.to(device)
+    
+    # Get random batch from test loader
+    for images, _ in test_loader:
+        if images.shape[0] >= num_samples:
+            # Select random samples
+            indices = torch.randperm(images.shape[0])[:num_samples]
+            images = images[indices].to(device)
+            break
+    
+    # Generate random sigma values for visualization
+    sigma_min = config['noise']['sigma_min']
+    sigma_max = config['noise']['sigma_max']
+    sigma_values = torch.rand(num_samples, device=device) * (sigma_max - sigma_min) + sigma_min
+    
+    # Add noise with specific sigma values
+    eps = torch.randn_like(images)
+    sigma_expanded = sigma_values.view(num_samples, 1, 1, 1)
+    noisy_images = images + eps * sigma_expanded
+    
+    # Get model predictions
+    with torch.no_grad():
+        sigma_estimated = model(noisy_images).squeeze()
+    
+    # Create the visualization using improved version of user's function
+    def min_max_norm_batch_0_1(x):
+        """Min-max normalization for each image in batch."""
+        batch_size = x.shape[0]
+        x_reshaped = x.view(batch_size, -1)
+        min_vals = x_reshaped.min(dim=1, keepdim=True)[0].view(batch_size, 1, 1, 1)
+        max_vals = x_reshaped.max(dim=1, keepdim=True)[0].view(batch_size, 1, 1, 1)
+        return (x - min_vals) / (max_vals - min_vals + 1e-8)
+    
+    def show_batch_image(batchlist, ncol=4, save_path=None):
+        """Enhanced version of user's visualization function."""
+        count = len(batchlist)
+        fig, axes = plt.subplots(1, count, figsize=(20, 25))
+        fig.dpi = 300
+        
+        nrow = (len(batchlist[0].value)) // ncol
+        
+        for ax, batch in zip(axes, batchlist):
+            ax.set_title(batch.name, fontsize=14, fontweight='bold')
+            
+            if batch.showtype == 'grid':
+                # Denormalize images for proper display
+                if batch.name in ['Original Images', 'Noisy Images']:
+                    display_images = denormalize_batch(batch.value)
+                    display_images = torch.clamp(display_images, 0, 1)
+                else:
+                    display_images = min_max_norm_batch_0_1(batch.value)
+                
+                grid_img_batch = make_grid(display_images, nrow=ncol, padding=2)
+                ax.imshow(grid_img_batch.permute(1, 2, 0).cpu().detach().numpy())
+                
+            elif batch.showtype == 'table':
+                matbatch = batch.value.reshape([nrow, ncol])
+                im = ax.matshow(matbatch.cpu().detach().numpy(), cmap=plt.cm.Blues, aspect=0.99)
+                
+                # Add colorbar for table visualization
+                plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+                
+                for i in range(nrow):
+                    for j in range(ncol):
+                        ax.text(j, i, "{:.3f}".format(matbatch[i, j].item()), 
+                               va='center', ha='center', fontsize=8, fontweight='bold')
+            
+            ax.axis('off')
+        
+        plt.suptitle('Noise Estimation Visualization', fontsize=18, fontweight='bold', y=0.95)
+        plt.tight_layout()
+        
+        if save_path:
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            plt.close()
+        else:
+            plt.show()
+    
+    # Prepare data for visualization
+    batchlist = [
+        Namespace(name='Original Images', value=images, showtype='grid'),
+        Namespace(name='True Sigma (σ)', value=sigma_values, showtype='table'),
+        Namespace(name='Noisy Images', value=noisy_images, showtype='grid'),
+        Namespace(name='Estimated Sigma (σ)', value=sigma_estimated, showtype='table')
+    ]
+    
+    # Create and save visualization
+    show_batch_image(batchlist, ncol=4, save_path=save_path)
+    
+    return {
+        'original_images': images,
+        'sigma_true': sigma_values,
+        'noisy_images': noisy_images,
+        'sigma_estimated': sigma_estimated
+    }
+
+
 def plot_scatter_predictions(targets, predictions, save_path=None):
     """
     Create scatter plot of true vs predicted noise levels.
