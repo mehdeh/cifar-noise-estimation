@@ -3,7 +3,7 @@
 import torch
 import torchvision
 import torchvision.transforms as transforms
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 
 
 def get_dataloaders(config):
@@ -77,6 +77,15 @@ def get_dataloaders(config):
         transform=transform_test
     )
     
+    # Apply test_samples limit if specified
+    test_samples = config.get('testing', {}).get('test_samples', None)
+    if test_samples is not None and test_samples > 0 and test_samples < len(testset):
+        # Create a subset of the test set
+        indices = list(range(test_samples))
+        testset_for_loader = Subset(testset, indices)
+    else:
+        testset_for_loader = testset
+    
     # Determine if pin_memory should be used (only when CUDA is available)
     pin_memory = torch.cuda.is_available()
     
@@ -90,7 +99,7 @@ def get_dataloaders(config):
     )
     
     test_loader = DataLoader(
-        testset,
+        testset_for_loader,
         batch_size=data_config['batch_size_test'],
         shuffle=False,
         num_workers=data_config['num_workers'],

@@ -52,6 +52,7 @@ training:
 testing:
   checkpoint_path: null
   batch_size: 100
+  test_samples: 10000  # Number of samples to use for testing (null or 0 = use all)
 
 # Logging configuration
 logging:

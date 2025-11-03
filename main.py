@@ -6,7 +6,9 @@ The design follows clean code principles with minimal CLI parameters and config-
 
 Usage:
     python main.py train [--config CONFIG] [--exp-name NAME] [--device DEVICE] [--resume]
-    python main.py test --checkpoint CHECKPOINT [--config CONFIG] [--exp-name NAME] [--device DEVICE]
+                         [--sigma-min FLOAT] [--sigma-max FLOAT] [--epochs INT] [--lr FLOAT]
+    python main.py test --checkpoint CHECKPOINT [--config CONFIG] [--exp-name NAME] 
+                        [--device DEVICE] [--test-samples INT] [--sigma-min FLOAT] [--sigma-max FLOAT]
 
 Examples:
     # Train with default config
@@ -15,11 +17,17 @@ Examples:
     # Train with custom config and experiment name
     python main.py train --config config/custom.yaml --exp-name my_experiment
     
+    # Train with custom hyperparameters
+    python main.py train --sigma-min 0.5 --sigma-max 3.0 --epochs 50 --lr 0.01
+    
     # Resume training from checkpoint
     python main.py train --resume --resume-from path/to/checkpoint.pth
     
     # Evaluate trained model
     python main.py test --checkpoint runs/exp_20240101_120000/checkpoints/best_model.pth
+    
+    # Evaluate on a subset of test samples with custom noise range
+    python main.py test --checkpoint path/to/checkpoint.pth --test-samples 1000 --sigma-min 1.0 --sigma-max 2.0
 """
 
 import os
@@ -137,7 +145,8 @@ def create_model_and_log_info(config, logger):
     return model
 
 
-def run_training(config_path, exp_name, device_override, resume, resume_from):
+def run_training(config_path, exp_name, device_override, resume, resume_from, 
+                 sigma_min=None, sigma_max=None, epochs=None, lr=None):
     """
     Run training pipeline with clean separation of concerns.
     
@@ -147,6 +156,10 @@ def run_training(config_path, exp_name, device_override, resume, resume_from):
         device_override (str): Device override (optional)
         resume (bool): Whether to resume training
         resume_from (str): Checkpoint path to resume from (optional)
+        sigma_min (float): Minimum noise level override (optional)
+        sigma_max (float): Maximum noise level override (optional)
+        epochs (int): Number of epochs override (optional)
+        lr (float): Learning rate override (optional)
     """
     # Setup experiment
     config, exp_dir, logger = setup_experiment(config_path, exp_name, 'train', device_override)
@@ -156,6 +169,20 @@ def run_training(config_path, exp_name, device_override, resume, resume_from):
         config['training']['resume'] = True
     if resume_from:
         config['training']['resume_path'] = resume_from
+    
+    # Apply CLI overrides
+    if sigma_min is not None:
+        config['noise']['sigma_min'] = sigma_min
+        logger.info(f"Overriding sigma_min: {sigma_min}")
+    if sigma_max is not None:
+        config['noise']['sigma_max'] = sigma_max
+        logger.info(f"Overriding sigma_max: {sigma_max}")
+    if epochs is not None:
+        config['training']['epochs'] = epochs
+        logger.info(f"Overriding epochs: {epochs}")
+    if lr is not None:
+        config['training']['learning_rate'] = lr
+        logger.info(f"Overriding learning_rate: {lr}")
     
     # Log configuration
     logger.info("\nTraining Configuration:")
@@ -212,7 +239,8 @@ def run_training(config_path, exp_name, device_override, resume, resume_from):
     generate_noise_estimation_visualization(trainer.model, config, exp_dir, logger)
 
 
-def run_evaluation(checkpoint_path, config_path, exp_name, device_override):
+def run_evaluation(checkpoint_path, config_path, exp_name, device_override, 
+                   test_samples=None, sigma_min=None, sigma_max=None):
     """
     Run evaluation pipeline with clean separation of concerns.
     
@@ -221,15 +249,34 @@ def run_evaluation(checkpoint_path, config_path, exp_name, device_override):
         config_path (str): Path to config file
         exp_name (str): Experiment name (optional)
         device_override (str): Device override (optional)
+        test_samples (int): Number of test samples to use (optional)
+        sigma_min (float): Minimum noise level override (optional)
+        sigma_max (float): Maximum noise level override (optional)
     """
     # Setup experiment
     config, exp_dir, logger = setup_experiment(config_path, exp_name, 'test', device_override)
     config['testing']['checkpoint_path'] = checkpoint_path
     
+    # Apply CLI overrides
+    if test_samples is not None:
+        config['testing']['test_samples'] = test_samples
+        logger.info(f"Overriding test_samples: {test_samples}")
+    if sigma_min is not None:
+        config['noise']['sigma_min'] = sigma_min
+        logger.info(f"Overriding sigma_min: {sigma_min}")
+    if sigma_max is not None:
+        config['noise']['sigma_max'] = sigma_max
+        logger.info(f"Overriding sigma_max: {sigma_max}")
+    
     # Log information
     logger.info(f"Checkpoint: {checkpoint_path}")
     logger.info("\nEvaluation Configuration:")
     logger.info(f"  Batch size: {config['data']['batch_size_test']}")
+    test_samples_config = config.get('testing', {}).get('test_samples', None)
+    if test_samples_config and test_samples_config > 0:
+        logger.info(f"  Test samples: {test_samples_config}")
+    else:
+        logger.info(f"  Test samples: All")
     logger.info(f"  Noise range: [{config['noise']['sigma_min']}, {config['noise']['sigma_max']}]")
     logger.info(f"  Device: {config['device']}")
     logger.info(f"  Seed: {config['seed']}")
@@ -344,11 +391,17 @@ Examples:
   # Train with custom config and experiment name
   python main.py train --config config/custom.yaml --exp-name my_experiment
   
+  # Train with custom hyperparameters
+  python main.py train --sigma-min 0.5 --sigma-max 3.0 --epochs 50 --lr 0.01
+  
   # Resume training from checkpoint
   python main.py train --resume --resume-from path/to/checkpoint.pth
   
   # Evaluate trained model
   python main.py test --checkpoint runs/exp_20240101_120000/checkpoints/best_model.pth
+  
+  # Evaluate on a subset of test samples with custom noise range
+  python main.py test --checkpoint path/to/checkpoint.pth --test-samples 1000 --sigma-min 1.0 --sigma-max 2.0
         """
     )
     
@@ -387,6 +440,30 @@ Examples:
         default=None,
         help='Resume training from specific checkpoint path'
     )
+    train_parser.add_argument(
+        '--sigma-min',
+        type=float,
+        default=None,
+        help='Minimum noise level (overrides config)'
+    )
+    train_parser.add_argument(
+        '--sigma-max',
+        type=float,
+        default=None,
+        help='Maximum noise level (overrides config)'
+    )
+    train_parser.add_argument(
+        '--epochs',
+        type=int,
+        default=None,
+        help='Number of training epochs (overrides config)'
+    )
+    train_parser.add_argument(
+        '--lr',
+        type=float,
+        default=None,
+        help='Learning rate (overrides config)'
+    )
     
     # Testing parser  
     test_parser = subparsers.add_parser('test', help='Evaluate trained model')
@@ -415,6 +492,24 @@ Examples:
         default=None,
         help='Device to use (overrides config setting)'
     )
+    test_parser.add_argument(
+        '--test-samples',
+        type=int,
+        default=None,
+        help='Number of test samples to use (overrides config, 0 or None = use all)'
+    )
+    test_parser.add_argument(
+        '--sigma-min',
+        type=float,
+        default=None,
+        help='Minimum noise level (overrides config)'
+    )
+    test_parser.add_argument(
+        '--sigma-max',
+        type=float,
+        default=None,
+        help='Maximum noise level (overrides config)'
+    )
     
     return parser
 
@@ -433,7 +528,11 @@ def main():
                 exp_name=args.exp_name,
                 device_override=args.device,
                 resume=args.resume,
-                resume_from=args.resume_from
+                resume_from=args.resume_from,
+                sigma_min=args.sigma_min,
+                sigma_max=args.sigma_max,
+                epochs=args.epochs,
+                lr=args.lr
             )
         
         elif args.mode == 'test':
@@ -441,7 +540,10 @@ def main():
                 checkpoint_path=args.checkpoint,
                 config_path=args.config,
                 exp_name=args.exp_name,
-                device_override=args.device
+                device_override=args.device,
+                test_samples=args.test_samples,
+                sigma_min=args.sigma_min,
+                sigma_max=args.sigma_max
             )
         
         else:
