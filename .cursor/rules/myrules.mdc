@@ -1,3 +1,6 @@
+---
+alwaysApply: true
+---
 # Auto Commit Summary Rule
 When you complete ANY coding work (file edits, creation, deletion), you MUST end your final response with a git commit message summary.
 
