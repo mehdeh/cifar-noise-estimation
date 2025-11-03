@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader, Subset
 
 def get_dataloaders(config):
     """
-    Create train and test dataloaders for CIFAR-10.
+    Create train, validation, and test dataloaders for CIFAR-10.
     
     Note: Noise is NOT added in the dataset. It will be added dynamically 
     during training to ensure different noise in each epoch.
@@ -17,7 +17,7 @@ def get_dataloaders(config):
         config (dict): Configuration dictionary containing data settings
         
     Returns:
-        tuple: (train_loader, test_loader, train_dataset, test_dataset)
+        tuple: (train_loader, val_loader, train_dataset, test_loader)
     """
     data_config = config['data']
     
@@ -98,15 +98,24 @@ def get_dataloaders(config):
         pin_memory=pin_memory
     )
     
-    test_loader = DataLoader(
-        testset_for_loader,
+    # Use test set for validation (common practice in many projects)
+    val_loader = DataLoader(
+        testset,  # Use full test set for validation
         batch_size=data_config['batch_size_test'],
         shuffle=False,
         num_workers=data_config['num_workers'],
         pin_memory=pin_memory
     )
     
-    return train_loader, test_loader, trainset, testset
+    test_loader = DataLoader(
+        testset_for_loader,  # May be a subset if test_samples is specified
+        batch_size=data_config['batch_size_test'],
+        shuffle=False,
+        num_workers=data_config['num_workers'],
+        pin_memory=pin_memory
+    )
+    
+    return train_loader, val_loader, trainset, test_loader
 
 
 def add_noise(images, sigma_min=0.0, sigma_max=1.0):
