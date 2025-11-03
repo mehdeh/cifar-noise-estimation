@@ -2,7 +2,40 @@
 alwaysApply: true
 ---
 # Auto Commit Summary Rule
-When you complete ANY coding work (file edits, creation, deletion), you MUST end your final response with a git commit message summary.
+When you complete ANY coding work (file edits, creation, deletion), you MUST end your final response with a git commit message summary following this EXACT format:
+
+```
+type(scope): brief description in lowercase
+
+- List of specific changes made
+- Each change on a new line with bullet point
+- Maximum 3-5 bullet points
+```
+
+**Commit Types:**
+- `feat`: New feature
+- `fix`: Bug fix
+- `refactor`: Code restructuring without changing functionality
+- `docs`: Documentation changes
+- `style`: Code style/formatting changes
+- `test`: Adding or modifying tests
+- `chore`: Maintenance tasks (dependencies, config)
 
 # Comments and Documentation
 - All comments and docstrings MUST be written in English/Latin only
+
+# Conda Environment Activation
+Before executing ANY Python code in the terminal, you MUST first activate the conda environment using:
+```bash
+eval "$(conda shell.bash hook)" && conda activate myenv
+```
+This applies to all terminal commands that run Python scripts, including but not limited to:
+- Training commands (python main.py train)
+- Testing/evaluation commands (python main.py test)
+- Any other Python script execution
+- Python REPL or interactive commands
+
+Example of correct usage:
+```bash
+cd /home/ubuntu/cifar-noise-estimation && eval "$(conda shell.bash hook)" && conda activate myenv && python main.py train
+```
