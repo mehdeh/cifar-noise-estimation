@@ -7,7 +7,7 @@ import torch.optim as optim
 from tqdm import tqdm
 
 from ..data.dataset import add_noise
-from ..utils.visualization import plot_losses, save_sample_images
+from ..utils.visualization import plot_losses
 
 
 class Trainer:
@@ -171,10 +171,6 @@ class Trainer:
         total_loss = 0.0
         num_batches = len(self.val_loader)
         
-        # For visualization (save first batch)
-        save_visualizations = (epoch % self.config['logging']['plot_freq'] == 0)
-        first_batch_saved = False
-        
         with torch.no_grad():
             with tqdm(self.val_loader, desc=f"Epoch {epoch} [Val]") as pbar:
                 for batch_idx, (images, _) in enumerate(pbar):
@@ -195,14 +191,6 @@ class Trainer:
                     # Update progress bar
                     avg_loss = total_loss / (batch_idx + 1)
                     pbar.set_postfix({'loss': f'{avg_loss:.6f}'})
-                    
-                    # Save sample images from first batch
-                    if save_visualizations and not first_batch_saved:
-                        save_path = os.path.join(
-                            self.exp_dir, 'plots', f'samples_epoch_{epoch}.png'
-                        )
-                        save_sample_images(images, noisy_images, save_path, num_samples=8)
-                        first_batch_saved = True
         
         avg_loss = total_loss / num_batches
         return avg_loss
@@ -277,20 +265,16 @@ class Trainer:
             'config': self.config
         }
         
-        # Save regular checkpoint
-        checkpoint_path = os.path.join(checkpoint_dir, f'checkpoint_epoch_{epoch}.pth')
-        torch.save(state, checkpoint_path)
-        self.logger.info(f"Saved checkpoint: {checkpoint_path}")
-        
         # Save best model
         if is_best:
             best_path = os.path.join(checkpoint_dir, 'best_model.pth')
             torch.save(state, best_path)
             self.logger.info(f"Saved best model: {best_path}")
         
-        # Save latest model (for easy resuming)
+        # Always save latest model (for easy resuming)
         latest_path = os.path.join(checkpoint_dir, 'latest.pth')
         torch.save(state, latest_path)
+        self.logger.info(f"Saved latest checkpoint: {latest_path}")
     
     def load_checkpoint(self, checkpoint_path):
         """
