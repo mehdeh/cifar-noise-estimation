@@ -327,7 +327,7 @@ The trained model was evaluated on the CIFAR-10 test set (10,000 samples) with n
 
 #### Visualization Results
 
-![Scatter Plot: True vs Predicted Noise Levels](docs/images/test_scatter_predictions.png)
+<img src="docs/images/test_scatter_predictions.png" alt="Scatter Plot: True vs Predicted Noise Levels" width="50%">
 
 **Figure 2**: Scatter plot showing the relationship between true noise levels (σ_true) and predicted noise levels (σ_pred) for 10,000 test samples. The points closely align with the diagonal line (y=x), indicating highly accurate predictions across the entire noise range [0.0, 4.0].
 
