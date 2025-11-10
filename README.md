@@ -43,7 +43,7 @@ This is a fundamental task in image denoising and is related to diffusion models
 - **Comprehensive Logging**: Detailed logging of training progress and metrics
 - **Rich Visualizations**: Loss curves, prediction scatter plots, noise distributions
 - **Checkpoint Management**: Automatic saving of best models and resumable training
-- **Unified CLI Interface**: Single main script with train/test subcommands using Click
+- **Unified CLI Interface**: Single main script with train/test subcommands using argparse
 - **Reproducibility**: Seed control for reproducible experiments
 - **Persian/Farsi Support**: Documentation and CLI help in Persian language
 
