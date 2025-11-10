@@ -18,11 +18,12 @@ A deep learning project for estimating noise levels in CIFAR-10 images using Res
 - [Methodology](#methodology)
 - [Example Workflow](#example-workflow)
 - [Experimental Scenarios](#experimental-scenarios)
-- [Monitoring Training](#monitoring-training)
-- [Tips and Best Practices](#tips-and-best-practices)
-- [Troubleshooting](#troubleshooting)
-- [Useful Commands](#useful-commands)
 - [References](#references)
+- [License](#license)
+- [Author](#author)
+- [Acknowledgments](#acknowledgments)
+- [Contributing](#contributing)
+- [Support](#support)
 
 ## 🎯 Overview
 
@@ -81,10 +82,6 @@ cifar-noise-estimation/
 
 ## 🚀 Installation
 
-### Prerequisites
-
-- Python 3.8+
-- CUDA-capable GPU (recommended)
 
 ### Setup
 
@@ -92,12 +89,6 @@ cifar-noise-estimation/
 ```bash
 git clone <repository-url>
 cd cifar-noise-estimation
-```
-
-2. **Create a virtual environment** (recommended):
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
 3. **Install dependencies**:
@@ -176,7 +167,7 @@ python main.py train \
     --batch-size 128 \
     --lr 0.001 \
     --sigma-min 0.0 \
-    --sigma-max 1.0 \
+    --sigma-max 4.0 \
     --device cuda
 ```
 
@@ -201,7 +192,7 @@ python main.py train \
 | `--device` | Device (cuda/cpu) | `cuda` |
 | `--seed` | Random seed | `42` |
 | `--sigma-min` | Min noise std | `0.0` |
-| `--sigma-max` | Max noise std | `1.0` |
+| `--sigma-max` | Max noise std | `4.0` |
 | `--resume` | Resume from checkpoint | `False` |
 | `--resume-path` | Path to checkpoint | `None` |
 
@@ -234,7 +225,7 @@ python main.py test \
 | `--batch-size` | Test batch size | `100` |
 | `--device` | Device (cuda/cpu) | `cuda` |
 | `--sigma-min` | Min noise std for testing | `0.0` |
-| `--sigma-max` | Max noise std for testing | `1.0` |
+| `--sigma-max` | Max noise std for testing | `4.0` |
 | `--save-visualizations` | Save plots | `True` |
 | `--evaluate-by-noise-level` | Per-level metrics | `False` |
 
@@ -279,12 +270,104 @@ The final configuration (after CLI override) is saved in the experiment director
 
 ## 📊 Results
 
-### Training Output
+This section presents the experimental results obtained from training and evaluating the noise estimation model on CIFAR-10 dataset.
+
+### Experimental Setup
+
+The model was trained with the following configuration (as specified in `config/default.yaml`):
+
+- **Model Architecture**: ResNet-18
+- **Training Epochs**: 100
+- **Learning Rate**: 0.001
+- **Batch Size**: 128 (training), 100 (testing)
+- **Noise Range**: σ ∈ [0.0, 4.0]
+- **Optimizer**: SGD with momentum (0.9)
+- **Scheduler**: Cosine Annealing LR
+- **Loss Function**: Mean Squared Error (MSE)
+- **Dataset**: CIFAR-10 (10,000 test samples)
+
+### Training Results
+
+The model was trained for 100 epochs, achieving convergence with stable training and validation losses. The training process shows consistent learning with the best validation loss of **0.001595** achieved at epoch 99.
+
+![Training Loss Curve](docs/images/loss_curve.png)
+
+**Figure 1**: Training and validation loss curves over 100 epochs. The model shows stable convergence with both training and validation losses decreasing consistently, indicating good generalization without overfitting.
+
+**Key Training Observations**:
+- Initial training loss: 0.1174 (epoch 0)
+- Final training loss: 0.0032 (epoch 99)
+- Best validation loss: 0.0016 (epoch 99)
+- The model demonstrates stable convergence with no signs of overfitting
+- Training and validation losses follow similar trends, indicating good generalization
+
+### Test Results
+
+The trained model was evaluated on the CIFAR-10 test set (10,000 samples) with noise levels uniformly sampled from [0.0, 4.0]. The evaluation demonstrates excellent performance across all metrics.
+
+#### Overall Performance Metrics
+
+| Metric | Value |
+|--------|-------|
+| **MSE** (Mean Squared Error) | 0.00165 |
+| **RMSE** (Root Mean Squared Error) | 0.0406 |
+| **MAE** (Mean Absolute Error) | 0.0309 |
+| **R² Score** | 0.9988 |
+| **Pearson Correlation** | 0.9994 |
+| **Mean Error (Bias)** | 0.0035 |
+| **Median Absolute Error** | 0.0244 |
+| **Max Absolute Error** | 0.2002 |
+| **Std Error** | 0.0405 |
+
+**Key Findings**:
+- **Excellent predictive accuracy**: R² score of 0.9988 indicates that the model explains 99.88% of the variance in noise levels
+- **Strong linear correlation**: Pearson correlation coefficient of 0.9994 demonstrates nearly perfect linear relationship between predicted and true noise levels
+- **Low prediction error**: Mean absolute error of 0.0309 on a scale of [0.0, 4.0] represents less than 1% relative error
+- **Minimal bias**: Mean error of 0.0035 indicates the model has very little systematic bias
+
+#### Visualization Results
+
+![Scatter Plot: True vs Predicted Noise Levels](docs/images/test_scatter_predictions.png)
+
+**Figure 2**: Scatter plot showing the relationship between true noise levels (σ_true) and predicted noise levels (σ_pred) for 10,000 test samples. The points closely align with the diagonal line (y=x), indicating highly accurate predictions across the entire noise range [0.0, 4.0].
+
+![Noise Distribution Analysis](docs/images/test_noise_distribution.png)
+
+**Figure 3**: Distribution analysis of true and predicted noise levels. The histogram and kernel density estimates show that the model accurately captures the uniform distribution of noise levels in the test set, with predicted values closely matching the true distribution.
+
+![Noise Estimation Table](docs/images/noise_estimation_table.png)
+
+**Figure 4**: Detailed noise estimation table showing sample predictions for 32 test images. Each row displays the clean image, noisy image, true noise level (σ), predicted noise level (σ_pred), and absolute error. The table demonstrates the model's ability to accurately estimate noise levels across different image content and noise magnitudes.
+
+#### Performance by Noise Level
+
+The model's performance was analyzed across different noise level ranges to assess consistency:
+
+| Noise Range (σ) | Samples | MAE | MSE |
+|----------------|---------|-----|-----|
+| [0.0, 0.4] | 949 | 0.0250 | 0.0011 |
+| [0.4, 0.8] | 1,049 | 0.0184 | 0.0005 |
+| [0.8, 1.2] | 970 | 0.0200 | 0.0006 |
+| [1.2, 1.6] | 1,016 | 0.0228 | 0.0008 |
+| [1.6, 2.0] | 1,005 | 0.0258 | 0.0010 |
+| [2.0, 2.4] | 982 | 0.0295 | 0.0014 |
+| [2.4, 2.8] | 987 | 0.0350 | 0.0019 |
+| [2.8, 3.2] | 1,040 | 0.0380 | 0.0022 |
+| [3.2, 3.6] | 1,039 | 0.0427 | 0.0029 |
+| [3.6, 4.0] | 963 | 0.0458 | 0.0033 |
+
+**Analysis**:
+- The model maintains high accuracy across all noise levels
+- Performance is slightly better for moderate noise levels (0.4-1.2) with MAE around 0.018-0.020
+- Error increases slightly for very high noise levels (3.2-4.0), which is expected as noise estimation becomes more challenging with extreme corruption
+- The consistent performance across the full range [0.0, 4.0] demonstrates the model's robustness
+
+### Experimental Output Structure
 
 Each training run creates an experiment directory:
 
 ```
-runs/exp_20241026_143022/
+runs/exp_YYYYMMDD_HHMMSS/
 ├── config.yaml              # Final configuration used
 ├── checkpoints/
 │   ├── best_model.pth       # Best model (lowest val loss)
@@ -294,14 +377,13 @@ runs/exp_20241026_143022/
 │   ├── train.log            # Detailed training logs
 │   └── metrics.json         # Training metrics (JSON)
 └── plots/
-    ├── loss_curve.png       # Training/validation loss
-    └── samples_epoch_*.png  # Sample images at different epochs
+    └── loss_curve.png       # Training/validation loss
 ```
 
-### Evaluation Output
+Each evaluation run creates a test directory:
 
 ```
-runs/test_20241026_150000/
+runs/test_YYYYMMDD_HHMMSS/
 ├── config.yaml              # Test configuration
 ├── logs/
 │   ├── test.log             # Evaluation logs
@@ -309,19 +391,9 @@ runs/test_20241026_150000/
 └── plots/
     ├── test_scatter_predictions.png    # True vs Predicted σ
     ├── test_noise_distribution.png     # Noise distributions
-    └── test_sample_images.png          # Sample clean/noisy images
+    ├── test_sample_images.png          # Sample clean/noisy images
+    └── noise_estimation_table.png      # Detailed prediction table
 ```
-
-### Metrics
-
-The evaluation provides comprehensive metrics:
-
-- **MSE**: Mean Squared Error
-- **RMSE**: Root Mean Squared Error
-- **MAE**: Mean Absolute Error
-- **R² Score**: Coefficient of determination
-- **Pearson Correlation**: Linear correlation coefficient
-- **Error Statistics**: Mean, median, std, max absolute error
 
 ## 🔬 Methodology
 
@@ -376,7 +448,7 @@ python main.py train \
     --epochs 100 \
     --lr 0.001 \
     --sigma-min 0.0 \
-    --sigma-max 1.0
+    --sigma-max 4.0
 
 # 2. Evaluate the trained model
 python main.py test \
@@ -398,7 +470,7 @@ python main.py train --exp-name low_noise --sigma-min 0.0 --sigma-max 0.5 --epoc
 python main.py train --exp-name high_noise --sigma-min 0.5 --sigma-max 2.0 --epochs 100
 
 # Train on full range
-python main.py train --exp-name full_range --sigma-min 0.0 --sigma-max 2.0 --epochs 150
+python main.py train --exp-name full_range --sigma-min 0.0 --sigma-max 4.0 --epochs 150
 
 # Evaluate all three models
 python main.py test --checkpoint runs/low_noise_*/checkpoints/best_model.pth --exp-name eval_low
@@ -444,267 +516,6 @@ python main.py test --checkpoint runs/sigma_0_10_*/checkpoints/best_model.pth --
 python main.py test --checkpoint runs/sigma_0_20_*/checkpoints/best_model.pth --exp-name eval_0_20 --evaluate-by-noise-level
 ```
 
-## 📈 Monitoring Training
-
-### Using tmux for Background Training
-
-For long training sessions, use tmux to keep training running in the background:
-
-```bash
-# Start a new tmux session
-tmux new -s training
-
-# Run your training
-python main.py train --epochs 200 --exp-name long_training
-
-# Detach from session: Press Ctrl+B, then D
-
-# Reattach to session later
-tmux attach -t training
-
-# List all sessions
-tmux ls
-
-# Kill a session
-tmux kill-session -t training
-```
-
-### Save Training Output to File
-
-```bash
-# Save both stdout and stderr to a log file
-python main.py train --epochs 100 2>&1 | tee training_output.log
-
-# This allows you to:
-# - See output in real-time
-# - Have a complete log file saved
-```
-
-### Monitor Training Progress
-
-```bash
-# Watch training log in real-time
-tail -f runs/exp_*/logs/train.log
-
-# View latest metrics
-cat runs/exp_*/logs/metrics.json
-
-# Check GPU usage
-watch -n 1 nvidia-smi
-```
-
-## 🛠️ Tips and Best Practices
-
-1. **GPU Memory**: If you encounter OOM errors, reduce batch size:
-   ```bash
-   python main.py train --batch-size 64
-   ```
-
-2. **Reproducibility**: Always set the same seed for reproducible results:
-   ```bash
-   python main.py train --seed 42
-   ```
-
-3. **Hyperparameter Tuning**: Modify config file for extensive experiments:
-   ```yaml
-   training:
-     learning_rate: 0.0005
-     scheduler: "CosineAnnealingLR"
-     scheduler_params:
-       T_max: 200
-   ```
-
-4. **Monitoring**: Check training progress in real-time:
-   ```bash
-   tail -f runs/exp_*/logs/train.log
-   ```
-
-## 🔧 Troubleshooting
-
-### Common Issues and Solutions
-
-#### 1. CUDA out of memory
-
-**Error**: `RuntimeError: CUDA out of memory`
-
-**Solutions**:
-```bash
-# Option 1: Reduce batch size
-python main.py train --batch-size 64  # or even smaller: 32
-
-# Option 2: Use CPU instead
-python main.py train --device cpu --batch-size 32
-
-# Option 3: Reduce test batch size as well
-python main.py train --batch-size 64 --batch-size-test 50
-```
-
-#### 2. ModuleNotFoundError
-
-**Error**: `ModuleNotFoundError: No module named 'torch'` (or other dependencies)
-
-**Solution**:
-```bash
-# Reinstall all dependencies
-pip install -r requirements.txt
-
-# Or install specific missing package
-pip install torch torchvision
-```
-
-#### 3. Dataset download fails
-
-**Error**: Dataset download timeout or connection issues
-
-**Solutions**:
-```bash
-# Check internet connection first
-ping www.cs.toronto.edu
-
-# Manually download CIFAR-10
-# Download from: https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz
-# Extract to: ./datasets/cifar-10-batches-py/
-
-# Or retry with better connection
-python main.py train
-```
-
-#### 4. Import errors / Module not found
-
-**Error**: `ImportError: attempted relative import with no known parent package`
-
-**Solution**:
-```bash
-# Make sure you're in the project root directory
-cd /home/ubuntu/cifar-noise-estimation
-
-# Verify structure
-ls -la  # Should see main.py, src/, config/, etc.
-
-# Run from project root
-python main.py train
-```
-
-#### 5. Permission denied errors
-
-**Error**: `PermissionError: [Errno 13] Permission denied`
-
-**Solution**:
-```bash
-# Check and fix directory permissions
-chmod -R u+w runs/
-chmod -R u+w datasets/
-
-# Or run with appropriate permissions
-sudo python main.py train  # Not recommended, fix permissions instead
-```
-
-#### 6. Checkpoint not found
-
-**Error**: `FileNotFoundError: checkpoint not found`
-
-**Solution**:
-```bash
-# List available checkpoints
-find runs/ -name "*.pth"
-
-# Use the full path to existing checkpoint
-python main.py test --checkpoint runs/exp_20241026_143022/checkpoints/best_model.pth
-
-# Check if checkpoint file exists
-ls -lh runs/*/checkpoints/
-```
-
-## 🔍 Useful Commands
-
-### Get Help
-
-```bash
-# Show main help
-python main.py --help
-
-# Show training options
-python main.py train --help
-
-# Show testing options
-python main.py test --help
-```
-
-### Project Navigation
-
-```bash
-# Find all Python files (excluding cache)
-find . -name "*.py" | grep -v __pycache__
-
-# Show project structure
-tree -I '__pycache__|*.pyc|*.pth'
-
-# Count lines of code
-find . -name "*.py" -not -path "*/__pycache__/*" | xargs wc -l
-```
-
-### Results Management
-
-```bash
-# List all experiments
-ls -lh runs/
-
-# Find the latest experiment
-ls -lt runs/ | head -n 5
-
-# Check experiment size
-du -sh runs/*
-
-# View specific experiment results
-cat runs/exp_*/logs/metrics.json | jq '.'
-
-# Find best models
-find runs/ -name "best_model.pth"
-```
-
-### Cleanup
-
-```bash
-# Remove all experiment results (be careful!)
-rm -rf runs/*
-
-# Remove downloaded datasets
-rm -rf datasets/
-
-# Remove specific experiment
-rm -rf runs/exp_20241026_143022/
-
-# Remove all checkpoints except best models
-find runs/ -name "checkpoint_epoch_*.pth" -delete
-find runs/ -name "latest.pth" -delete
-
-# Clean Python cache
-find . -type d -name __pycache__ -exec rm -rf {} +
-find . -name "*.pyc" -delete
-```
-
-### System Information
-
-```bash
-# Check CUDA availability
-python -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}')"
-
-# Check PyTorch version
-python -c "import torch; print(f'PyTorch version: {torch.__version__}')"
-
-# Check GPU information
-nvidia-smi
-
-# Monitor GPU in real-time
-watch -n 1 nvidia-smi
-
-# Check disk space
-df -h
-
-# Check memory usage
-free -h
-```
-
 ## 📚 References
 
 - He, K., Zhang, X., Ren, S., & Sun, J. (2016). Deep Residual Learning for Image Recognition. CVPR 2016.
@@ -720,16 +531,13 @@ This project is free and open source, available for anyone to use, modify, and d
 
 **Mehdi Dehghani**
 - GitHub: [@mehdeh](https://github.com/mehdeh)
-- Project Link: [cifar-noise-estimation](https://github.com/mehdeh/cifar-noise-estimation)
-
-This project was developed as part of research in noise estimation for images, with the assistance of AI-powered development tools (Cursor AI).
+- Project: [cifar-noise-estimation](https://github.com/mehdeh/cifar-noise-estimation)
 
 ## 🙏 Acknowledgments
 
 - CIFAR-10 dataset by Alex Krizhevsky
 - ResNet architecture by Kaiming He et al.
 - PyTorch team for the deep learning framework
-- Cursor AI for development assistance and code optimization
 - The open-source community for inspiration and best practices
 
 ## 🤝 Contributing

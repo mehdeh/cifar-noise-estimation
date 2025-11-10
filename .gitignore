@@ -53,6 +53,11 @@ logs/
 *.jpeg
 *.pdf
 
+# Allow images in docs directory for README
+!docs/images/*.png
+!docs/images/*.jpg
+!docs/images/*.jpeg
+
 # Temporary files
 *.tmp
 *.bak
