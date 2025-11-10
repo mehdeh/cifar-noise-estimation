@@ -1,0 +1,70 @@
+# Optimized configuration for CIFAR-10 Noise Estimation
+# Designed to maximize GPU utilization and training speed
+
+# Model configuration
+model:
+  name: "ResNet18"
+  num_classes: 1  # Regression task for noise level prediction
+
+# Data configuration - OPTIMIZED FOR SPEED
+data:
+  dataset: "CIFAR10"
+  data_dir: "./datasets"
+  batch_size_train: 256  # INCREASED: Better GPU utilization
+  batch_size_test: 256   # INCREASED: Faster validation
+  num_workers: 4         # INCREASED: Better CPU utilization for data loading
+  normalize: true
+  # CIFAR-10 normalization statistics
+  mean: [0.4914, 0.4822, 0.4465]
+  std: [0.2023, 0.1994, 0.2010]
+  # Data augmentation for training
+  augmentation:
+    random_horizontal_flip: true
+    random_crop: false  # DISABLED: Reduces preprocessing time
+    crop_size: 32
+    padding: 4
+
+# Noise configuration
+noise:
+  sigma_min: 0.0
+  sigma_max: 4.0
+  distribution: "normal"  # Gaussian noise N(0, I)
+
+# Training configuration - OPTIMIZED
+training:
+  epochs: 100
+  learning_rate: 0.01    # INCREASED: Faster convergence with larger batch size
+  momentum: 0.9
+  weight_decay: 0.0001   # REDUCED: Less regularization overhead
+  optimizer: "Adam"      # CHANGED: Generally faster than SGD for this task
+  scheduler: "CosineAnnealingLR"
+  scheduler_params:
+    T_max: 100           # ADJUSTED: Match epochs
+  
+  # Loss configuration
+  loss: "MSELoss"
+  
+  # Checkpoint configuration
+  save_freq: 10          # INCREASED: Less I/O overhead
+  resume: false
+  resume_path: null
+
+# Testing/Evaluation configuration
+testing:
+  checkpoint_path: null
+  batch_size: 256        # INCREASED: Faster evaluation
+  test_samples: 10000
+
+# Logging configuration
+logging:
+  log_freq: 25           # INCREASED: Less logging overhead
+  save_plots: true
+  plot_freq: 5           # REDUCED: Less I/O during training
+
+# Device configuration
+device: "cuda"
+
+# Random seed for reproducibility
+seed: 42
+
+
