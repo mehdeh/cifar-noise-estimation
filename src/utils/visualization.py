@@ -225,13 +225,38 @@ def create_noise_estimation_table(model, test_loader, config, save_path, num_sam
     # Ensure model is on the correct device and in eval mode
     model = model.to(device)
     
-    # Get random batch from test loader
-    for images, _ in test_loader:
-        if images.shape[0] >= num_samples:
-            # Select random samples
-            indices = torch.randperm(images.shape[0])[:num_samples]
-            images = images[indices].to(device)
+    # Collect random samples from multiple batches to ensure diversity
+    collected_images = []
+    collected_count = 0
+    
+    # Set seed for reproducible results
+    torch.manual_seed(42)
+    
+    # Iterate through batches and collect diverse samples
+    for batch_images, _ in test_loader:
+        if collected_count >= num_samples:
             break
+            
+        batch_images = batch_images.to(device)
+        
+        # Take random samples from this batch
+        available_samples = min(batch_images.shape[0], num_samples - collected_count)
+        if available_samples > 0:
+            indices = torch.randperm(batch_images.shape[0])[:available_samples]
+            selected_images = batch_images[indices]
+            collected_images.append(selected_images)
+            collected_count += available_samples
+    
+    # Concatenate all collected images
+    if collected_images:
+        images = torch.cat(collected_images, dim=0)[:num_samples]
+    else:
+        # Fallback: if no images collected, use first available batch
+        for images, _ in test_loader:
+            if images.shape[0] >= num_samples:
+                indices = torch.randperm(images.shape[0])[:num_samples]
+                images = images[indices].to(device)
+                break
     
     # Generate random sigma values for visualization
     sigma_min = config['noise']['sigma_min']
